@@ -77,3 +77,42 @@ def test_run_sets_timestep_attrs() -> None:
     assert out.attrs["n_timesteps"] == 48
     assert out.attrs["configured_days"] == 2
     assert out.attrs["mixing_scheme"] == "fallback_diffusion"
+
+
+def test_run_reports_missing_gotm_status_when_requested() -> None:
+    cfg = RuntimeConfig(
+        year=2019,
+        latitude=-42.0,
+        longitude=147.0,
+        days=1,
+        model={
+            "scheme": "wombat-lite",
+            "use_gotm": True,
+            "gotm_executable": "./definitely_missing_gotm_binary",
+        },
+        column={"depth_m": 100.0, "nz": 10, "dt_seconds": 3600.0},
+        data={"jra55_uri": "unused", "init_uri": "unused"},
+    )
+
+    time = np.array([np.datetime64("2019-01-01T00:00")], dtype="datetime64[ns]")
+    forcing = xr.Dataset({"sw_down": ("time", np.ones(time.size) * 100.0)}, coords={"time": time})
+    depth = np.linspace(0.0, 100.0, 10)
+    init = xr.Dataset(
+        {
+            "phy": ("depth", np.linspace(0.2, 0.02, 10)),
+            "no3": ("depth", np.linspace(1.0, 10.0, 10)),
+            "dfe": ("depth", np.linspace(2e-4, 8e-4, 10)),
+            "zoo": ("depth", np.linspace(0.1, 0.01, 10)),
+            "det": ("depth", np.linspace(0.05, 0.2, 10)),
+            "o2": ("depth", np.linspace(220.0, 180.0, 10)),
+        },
+        coords={"depth": depth},
+    )
+
+    model = WombatColumnModel(cfg)
+    model.forcing_provider = _DummyForcingProvider(forcing)
+    model.init_provider = _DummyInitProvider(init)
+
+    out = model.run()
+    assert out.attrs["mixing_scheme"] == "fallback_diffusion"
+    assert "missing executable path" in out.attrs["gotm_status"]

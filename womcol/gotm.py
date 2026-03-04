@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -18,8 +19,29 @@ class GotmDriver:
     def __init__(self, model_cfg: ModelConfig):
         self.cfg = model_cfg
 
+    def availability_status(self) -> tuple[bool, str]:
+        exe = self.cfg.gotm_executable
+        exe_path = Path(exe)
+
+        if os.sep in exe or (os.altsep and os.altsep in exe):
+            if not exe_path.exists():
+                return False, f"missing executable path: {exe_path}"
+            if not os.access(exe_path, os.X_OK):
+                return False, f"non-executable GOTM binary: {exe_path}"
+            if self.cfg.gotm_setup_dir is not None and not self.cfg.gotm_setup_dir.exists():
+                return False, f"missing setup dir: {self.cfg.gotm_setup_dir}"
+            return True, "ok"
+
+        found = shutil.which(exe)
+        if found is None:
+            return False, f"executable not found on PATH: {exe}"
+        if self.cfg.gotm_setup_dir is not None and not self.cfg.gotm_setup_dir.exists():
+            return False, f"missing setup dir: {self.cfg.gotm_setup_dir}"
+        return True, f"ok ({found})"
+
     def available(self) -> bool:
-        return shutil.which(self.cfg.gotm_executable) is not None
+        ok, _ = self.availability_status()
+        return ok
 
     def _stage_setup(self, run_dir: Path) -> None:
         run_dir.mkdir(parents=True, exist_ok=True)

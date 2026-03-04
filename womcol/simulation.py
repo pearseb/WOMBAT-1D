@@ -111,7 +111,8 @@ class WombatColumnModel:
     def _mix_and_advect(self, ds: xr.Dataset) -> xr.Dataset:
         pre_inventory = _column_inventory(ds)
 
-        if self.cfg.model.use_gotm and self.gotm.available():
+        gotm_ok, gotm_status = self.gotm.availability_status()
+        if self.cfg.model.use_gotm and gotm_ok:
             gotm_ds = self.gotm.run()
             kappa = self.gotm.kappa_from_output(gotm_ds)
             if kappa is not None and kappa.ndim >= 2:
@@ -120,6 +121,7 @@ class WombatColumnModel:
                     kappa_vals = kappa_vals.reshape(kappa_vals.shape[0], -1)
                 mixed = apply_gotm_mixing(ds, kappa_vals, self.cfg.column)
                 mixed.attrs["mixing_scheme"] = "gotm"
+                mixed.attrs["gotm_status"] = gotm_status
                 mixed.attrs["gotm_kappa_var"] = kappa.name or "unknown"
                 mixed.attrs["inventory_before_mixing"] = str(pre_inventory)
                 mixed.attrs["inventory_after_mixing"] = str(_column_inventory(mixed))
@@ -127,6 +129,8 @@ class WombatColumnModel:
 
         mixed = fallback_mix_advect(ds, self.cfg.column)
         mixed.attrs["mixing_scheme"] = "fallback_diffusion"
+        if self.cfg.model.use_gotm:
+            mixed.attrs["gotm_status"] = gotm_status
         mixed.attrs["inventory_before_mixing"] = str(pre_inventory)
         mixed.attrs["inventory_after_mixing"] = str(_column_inventory(mixed))
         return mixed
