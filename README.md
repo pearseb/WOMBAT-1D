@@ -32,6 +32,23 @@ sudo apt-get install -y cmake gfortran build-essential libnetcdf-dev libnetcdff-
 ./scripts/install_gotm.sh
 ```
 
+If CMake errors with `Could NOT find NetCDF (missing: NetCDF_INCLUDE_DIRS)`, your NetCDF
+headers are not visible to CMake in the current shell (common on HPC/module systems).
+Try:
+
+```bash
+# Example (adjust module names for your system)
+module load netcdf
+
+# Optional explicit hint used by scripts/install_gotm.sh
+export NetCDF_ROOT=$(nc-config --prefix)
+
+./scripts/install_gotm.sh
+```
+
+If `nc-config` is unavailable, set `NetCDF_ROOT` (or `NETCDF_ROOT`) manually to your
+NetCDF install prefix that contains `include/netcdf.h` and `lib/libnetcdf*`.
+
 3. Prepare a GOTM setup directory (e.g., `./gotm_setup`) containing your GOTM namelists/YAML and forcing files.
 4. Point model config keys to GOTM paths:
    - `model.gotm_executable`
