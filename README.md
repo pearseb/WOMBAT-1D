@@ -1,0 +1,68 @@
+# WOMBAT-1D
+
+Python scaffold for a 1-D water-column implementation of **WOMBAT-lite** and **WOMBAT-mid** with explicit **GOTM** integration for physical mixing/advection.
+
+## What is implemented
+
+- Runtime selection of `wombat-lite` vs `wombat-mid` biogeochemistry.
+- User-configurable longitude, latitude, and year.
+- Surface forcing loader for JRA55-compatible datasets (light/momentum/heat/freshwater fields can be read from user-provided files).
+- Initialization loader for observational/climatological profile datasets at nearest lat/lon.
+- GOTM integration:
+  - supports running a compiled GOTM executable from this workflow,
+  - stages a user-provided GOTM setup directory into a run directory,
+  - reads GOTM output (`output.nc` by default) and uses diagnosed vertical diffusivity to mix tracers,
+  - falls back to internal diffusion if GOTM is disabled/unavailable.
+- Automation script + GitHub Action to sync canonical Fortran WOMBAT source files from:
+  - `generic_WOMBATlite.F90`
+  - `generic_WOMBATmid.F90`
+
+## GOTM integration workflow
+
+1. Install build dependencies (Ubuntu example):
+
+```bash
+sudo apt-get update
+sudo apt-get install -y cmake gfortran build-essential libnetcdf-dev libnetcdff-dev
+```
+
+2. Build GOTM from source (official repo: https://github.com/gotm-model/code):
+
+```bash
+./scripts/install_gotm.sh
+```
+
+3. Prepare a GOTM setup directory (e.g., `./gotm_setup`) containing your GOTM namelists/YAML and forcing files.
+4. Point model config keys to GOTM paths:
+   - `model.gotm_executable`
+   - `model.gotm_setup_dir`
+   - `model.gotm_run_dir`
+   - `model.gotm_output_path`
+
+When `model.use_gotm: true`, WOMBAT-1D runs GOTM and applies vertical mixing using GOTM-reported diffusivity (`nuh/num/Kz/...`).
+
+5. Validate GOTM was built correctly:
+
+```bash
+./scripts/check_gotm.sh ./third_party/gotm-code/build/gotm
+```
+
+
+## CI validation
+
+A GitHub Actions workflow (`.github/workflows/gotm-smoke-test.yml`) now builds GOTM from the official repository and runs a binary smoke check on every push/PR.
+
+## Quick start
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+python scripts/sync_wombat_sources.py
+womcol-run config.example.yml --output output/womcol.nc
+```
+
+## Notes
+
+- This repository now includes concrete runtime hooks for GOTM execution and uptake of GOTM turbulence diagnostics.
+- Full parity with WOMBAT Fortran source terms still requires completing one-to-one tendency translation/bindings in `womcol/wombat.py`.
