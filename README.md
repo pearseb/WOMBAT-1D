@@ -93,6 +93,12 @@ python -m pip install netCDF4
 
 You can replace `example_data/jra55_point.nc` with your own JRA55 forcing NetCDF file for a real location/year; that is often the easiest path for production runs.
 
+If you generated example files before this fix and still see `KeyError: "no index found for coordinate 'lat'"`, regenerate them with:
+
+```bash
+python scripts/create_example_data.py
+```
+
 ## Notes
 
 - This repository now includes concrete runtime hooks for GOTM execution and uptake of GOTM turbulence diagnostics.

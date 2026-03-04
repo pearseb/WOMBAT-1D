@@ -21,6 +21,25 @@ def _open_dataset_with_backends(uri: str) -> xr.Dataset:
         raise
 
 
+def _select_nearest_point(ds: xr.Dataset, *, lat_name: str, lon_name: str, latitude: float, longitude: float) -> xr.Dataset:
+    """Select nearest lat/lon when those coordinates are indexed dimensions.
+
+    If lat/lon are scalar coordinates (common for single-point files), no selection
+    is needed and this function returns the dataset unchanged.
+    """
+
+    indexers: dict[str, float] = {}
+    if lat_name in ds.indexes:
+        indexers[lat_name] = latitude
+    if lon_name in ds.indexes:
+        indexers[lon_name] = longitude
+
+    if not indexers:
+        return ds
+
+    return ds.sel(indexers, method="nearest")
+
+
 class ForcingProvider:
     """Loads surface forcing from JRA55-like datasets."""
 
@@ -36,13 +55,7 @@ class ForcingProvider:
         lat_name = "lat" if "lat" in ds.coords else "latitude"
         lon_name = "lon" if "lon" in ds.coords else "longitude"
 
-        sel = ds.sel(
-            {
-                lat_name: latitude,
-                lon_name: longitude,
-            },
-            method="nearest",
-        )
+        sel = _select_nearest_point(ds, lat_name=lat_name, lon_name=lon_name, latitude=latitude, longitude=longitude)
 
         if "time" in sel.coords:
             sel = sel.sel(time=slice(f"{year}-01-01", f"{year}-12-31T23:59:59"))
@@ -64,7 +77,7 @@ class InitialConditionProvider:
         lat_name = "lat" if "lat" in ds.coords else "latitude"
         lon_name = "lon" if "lon" in ds.coords else "longitude"
 
-        return ds.sel({lat_name: latitude, lon_name: longitude}, method="nearest")
+        return _select_nearest_point(ds, lat_name=lat_name, lon_name=lon_name, latitude=latitude, longitude=longitude)
 
 
 def write_netcdf(ds: xr.Dataset, out_path: Path) -> None:
