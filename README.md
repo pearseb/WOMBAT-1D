@@ -57,6 +57,7 @@ A GitHub Actions workflow (`.github/workflows/gotm-smoke-test.yml`) now builds G
 ```bash
 python -m venv .venv
 source .venv/bin/activate
+python -m pip install --upgrade pip setuptools wheel
 pip install -e .
 python scripts/sync_wombat_sources.py
 womcol-run config.example.yml --output output/womcol.nc
