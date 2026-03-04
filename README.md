@@ -61,6 +61,7 @@ python -m ensurepip --upgrade
 python -m pip install --upgrade pip setuptools wheel
 python -m pip install -e .
 python scripts/sync_wombat_sources.py
+python scripts/create_example_data.py
 womcol-run config.example.yml --output output/womcol.nc
 ```
 
@@ -89,6 +90,8 @@ python -m pip install netCDF4
 ```
 
 (Alternatives: `h5netcdf` or `scipy`, depending on the file format.)
+
+You can replace `example_data/jra55_point.nc` with your own JRA55 forcing NetCDF file for a real location/year; that is often the easiest path for production runs.
 
 ## Notes
 

@@ -35,7 +35,9 @@ class WombatColumnModel:
         light_name = "sw_down" if "sw_down" in forcing else list(forcing.data_vars)[0]
 
         history = {name: np.zeros((len(time), len(z)), dtype=float) for name in tracers.tracers}
+        total_steps = len(time)
         for it, _ in enumerate(time):
+            print(f"Running model at timestep {it + 1} of {total_steps} timesteps", flush=True)
             light_surface = float(forcing[light_name].isel(time=it).values)
             light_profile = np.exp(-0.04 * z) * max(light_surface, 0.0) / (abs(light_surface) + 1e-9)
             tracers = self.bio.step(tracers, dt_seconds=self.cfg.column.dt_seconds, light=light_profile)
