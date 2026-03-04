@@ -1,0 +1,12 @@
+{
+  "generic_WOMBATlite.F90": {
+    "source": "/g/data/p93/pjb581/access-om2-gtracer/GFDL-generic-tracers/generic_tracers/generic_WOMBATlite.F90",
+    "mode": "local",
+    "sha256": "84343c31d7bf8868c0e09eaeff33d7c762a234a254aad61f44b75e0f3ed36540"
+  },
+  "generic_WOMBATmid.F90": {
+    "source": "/g/data/p93/pjb581/access-om2-gtracer/GFDL-generic-tracers/generic_tracers/generic_WOMBATmid.F90",
+    "mode": "local",
+    "sha256": "bcd6c505454c83d60730fafbc6fb73f12c4960db4ec9a7ce045833f8e8283cb1"
+  }
+}
