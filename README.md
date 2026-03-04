@@ -19,14 +19,21 @@ Python scaffold for a 1-D water-column implementation of **WOMBAT-lite** and **W
 
 ## GOTM integration workflow
 
-1. Build GOTM from source (official repo: https://github.com/gotm-model/code):
+1. Install build dependencies (Ubuntu example):
+
+```bash
+sudo apt-get update
+sudo apt-get install -y cmake gfortran build-essential libnetcdf-dev libnetcdff-dev
+```
+
+2. Build GOTM from source (official repo: https://github.com/gotm-model/code):
 
 ```bash
 ./scripts/install_gotm.sh
 ```
 
-2. Prepare a GOTM setup directory (e.g., `./gotm_setup`) containing your GOTM namelists/YAML and forcing files.
-3. Point model config keys to GOTM paths:
+3. Prepare a GOTM setup directory (e.g., `./gotm_setup`) containing your GOTM namelists/YAML and forcing files.
+4. Point model config keys to GOTM paths:
    - `model.gotm_executable`
    - `model.gotm_setup_dir`
    - `model.gotm_run_dir`
@@ -34,7 +41,7 @@ Python scaffold for a 1-D water-column implementation of **WOMBAT-lite** and **W
 
 When `model.use_gotm: true`, WOMBAT-1D runs GOTM and applies vertical mixing using GOTM-reported diffusivity (`nuh/num/Kz/...`).
 
-4. Validate GOTM was built correctly:
+5. Validate GOTM was built correctly:
 
 ```bash
 ./scripts/check_gotm.sh ./third_party/gotm-code/build/gotm
