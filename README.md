@@ -39,6 +39,7 @@ Try:
 ```bash
 # Example (adjust module names for your system)
 module load netcdf
+module load netcdf-fortran   # if your site splits C/Fortran NetCDF modules
 
 # Optional explicit hint used by scripts/install_gotm.sh
 export NetCDF_ROOT=$(nc-config --prefix)
@@ -48,6 +49,9 @@ export NetCDF_ROOT=$(nc-config --prefix)
 
 If `nc-config` is unavailable, set `NetCDF_ROOT` (or `NETCDF_ROOT`) manually to your
 NetCDF install prefix that contains `include/netcdf.h` and `lib/libnetcdf*`.
+
+On older CMake stacks (e.g., policy CMP0074 warnings), the installer now also passes
+explicit include/lib hints from `nc-config` to improve compatibility.
 
 3. Prepare a GOTM setup directory (e.g., `./gotm_setup`) containing your GOTM namelists/YAML and forcing files.
 4. Point model config keys to GOTM paths:
