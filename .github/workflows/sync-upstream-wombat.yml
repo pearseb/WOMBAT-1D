@@ -13,8 +13,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Sync Fortran sources
-        run: python scripts/sync_wombat_sources.py
+      - name: Checkout upstream generic-tracers
+        uses: actions/checkout@v4
+        with:
+          repository: ACCESS-NRI/GFDL-generic-tracers
+          ref: main
+          path: upstream-generic-tracers
+      - name: Sync Fortran sources from upstream checkout
+        run: python scripts/sync_wombat_sources.py --upstream-dir upstream-generic-tracers
+      - name: Run WOMBAT-lite alignment sanity check
+        run: python scripts/check_wombat_lite_alignment.py womcol/upstream/generic_WOMBATlite.F90 --strict
       - name: Detect changes
         id: changes
         run: |

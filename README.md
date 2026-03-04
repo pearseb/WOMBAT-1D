@@ -106,6 +106,31 @@ If you generated example files before this fix and still see `KeyError: "no inde
 python scripts/create_example_data.py
 ```
 
+
+### Upstream link/symlink workflow
+
+You can link this repo directly to a local clone of `ACCESS-NRI/GFDL-generic-tracers` (instead of downloading raw files), which is useful for seamless co-development:
+
+```bash
+# copy synced files from local upstream clone
+python scripts/sync_wombat_sources.py --upstream-dir /path/to/GFDL-generic-tracers
+
+# OR symlink to upstream files so this repo always points to latest local upstream checkout
+python scripts/sync_wombat_sources.py --upstream-dir /path/to/GFDL-generic-tracers --symlink
+```
+
+In CI, the sync workflow now checks out the upstream repository directly and syncs from that checkout.
+
+### WOMBAT-lite process alignment check
+
+To compare the Python WOMBAT-lite implementation against a local copy of the canonical Fortran source, run:
+
+```bash
+python scripts/check_wombat_lite_alignment.py womcol/upstream/generic_WOMBATlite.F90 --strict
+```
+
+This provides a quick tracer/process token sanity check while iterating toward one-to-one parity.
+
 ## Notes
 
 - This repository now includes concrete runtime hooks for GOTM execution and uptake of GOTM turbulence diagnostics.
