@@ -57,11 +57,30 @@ A GitHub Actions workflow (`.github/workflows/gotm-smoke-test.yml`) now builds G
 ```bash
 python -m venv .venv
 source .venv/bin/activate
+python -m ensurepip --upgrade
 python -m pip install --upgrade pip setuptools wheel
-pip install -e .
+python -m pip install -e .
 python scripts/sync_wombat_sources.py
 womcol-run config.example.yml --output output/womcol.nc
 ```
+
+
+### Troubleshooting (HPC / older pip)
+
+If `pip install -e .` fails with errors like:
+- `No module named pip` during `setup.py develop`, or
+- very old pip (e.g. `21.2.3`) warnings,
+
+run:
+
+```bash
+source .venv/bin/activate
+python -m ensurepip --upgrade
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -e .
+```
+
+Using `python -m pip` ensures the `pip` attached to the active virtual environment is used.
 
 ## Notes
 
