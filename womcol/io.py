@@ -7,6 +7,20 @@ import xarray as xr
 from .config import DataConfig
 
 
+def _open_dataset_with_backends(uri: str) -> xr.Dataset:
+    try:
+        return xr.open_dataset(uri)
+    except ValueError as exc:
+        msg = str(exc)
+        if "xarray's IO backends" in msg:
+            raise ValueError(
+                f"Unable to open dataset '{uri}' because no compatible xarray NetCDF backend is installed. "
+                "Install at least one backend, e.g. `python -m pip install netCDF4` "
+                "(or `h5netcdf`/`scipy` depending on file format), then retry."
+            ) from exc
+        raise
+
+
 class ForcingProvider:
     """Loads surface forcing from JRA55-like datasets."""
 
@@ -18,7 +32,7 @@ class ForcingProvider:
         if self.cfg.jra55_uri is None:
             raise ValueError("DataConfig.jra55_uri must point to a local/remote JRA55-compatible dataset.")
 
-        ds = xr.open_dataset(self.cfg.jra55_uri)
+        ds = _open_dataset_with_backends(self.cfg.jra55_uri)
         lat_name = "lat" if "lat" in ds.coords else "latitude"
         lon_name = "lon" if "lon" in ds.coords else "longitude"
 
@@ -46,7 +60,7 @@ class InitialConditionProvider:
         if self.cfg.init_uri is None:
             raise ValueError("DataConfig.init_uri must point to a local/remote profile climatology dataset.")
 
-        ds = xr.open_dataset(self.cfg.init_uri)
+        ds = _open_dataset_with_backends(self.cfg.init_uri)
         lat_name = "lat" if "lat" in ds.coords else "latitude"
         lon_name = "lon" if "lon" in ds.coords else "longitude"
 

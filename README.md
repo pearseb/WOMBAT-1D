@@ -82,6 +82,14 @@ python -m pip install -e .
 
 Using `python -m pip` ensures the `pip` attached to the active virtual environment is used.
 
+If `womcol-run` fails with an xarray backend error like "found the following matches ... but their dependencies may not be installed", install a NetCDF backend in the same venv:
+
+```bash
+python -m pip install netCDF4
+```
+
+(Alternatives: `h5netcdf` or `scipy`, depending on the file format.)
+
 ## Notes
 
 - This repository now includes concrete runtime hooks for GOTM execution and uptake of GOTM turbulence diagnostics.
