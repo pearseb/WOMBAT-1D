@@ -1,0 +1,19 @@
+name: GOTM smoke test
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: ["**"]
+
+jobs:
+  gotm-build-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y cmake gfortran build-essential
+      - name: Build GOTM
+        run: ./scripts/install_gotm.sh
+      - name: Check GOTM executable
+        run: ./scripts/check_gotm.sh ./third_party/gotm-code/build/gotm

@@ -1,0 +1,21 @@
+year: 2019
+latitude: -42.0
+longitude: 147.0
+days: 365
+column:
+  depth_m: 200
+  nz: 80
+  dt_seconds: 1800
+data:
+  jra55_uri: ./example_data/jra55_point.nc
+  init_uri: ./example_data/init_profiles.nc
+model:
+  scheme: wombat-lite
+  use_gotm: true
+  gotm_executable: ./third_party/gotm-code/build/gotm
+  gotm_setup_dir: ./gotm_setup
+  gotm_run_dir: ./runs/gotm
+  gotm_output_path: output.nc
+  parameters:
+    phy_growth: 0.7
+    phy_mortality: 0.08
