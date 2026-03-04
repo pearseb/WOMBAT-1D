@@ -83,6 +83,13 @@ python -m pip install -e .
 
 Using `python -m pip` ensures the `pip` attached to the active virtual environment is used.
 
+If you see `ModuleNotFoundError: No module named 'scipy'` during initialization interpolation, update to the latest code and reinstall:
+
+```bash
+git pull
+python -m pip install -e .
+```
+
 If `womcol-run` fails with an xarray backend error like "found the following matches ... but their dependencies may not be installed", install a NetCDF backend in the same venv:
 
 ```bash

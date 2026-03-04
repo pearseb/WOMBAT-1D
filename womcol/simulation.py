@@ -11,6 +11,40 @@ from .io import ForcingProvider, InitialConditionProvider
 from .wombat import WombatModel
 
 
+def _interp_profile_to_grid(var: xr.DataArray, target_z: np.ndarray) -> np.ndarray:
+    """Interpolate (and linearly extrapolate) a 1-D profile onto target depths.
+
+    Uses NumPy only to avoid optional SciPy dependency required by xarray.interp.
+    """
+
+    if "depth" not in var.coords:
+        raise ValueError(f"Tracer '{var.name}' is missing required 'depth' coordinate in initialization dataset.")
+
+    src_z = np.asarray(var["depth"].values, dtype=float)
+    src_v = np.asarray(var.values, dtype=float)
+
+    if src_z.ndim != 1 or src_v.ndim != 1:
+        raise ValueError(f"Tracer '{var.name}' must be 1-D over depth for initialization.")
+
+    order = np.argsort(src_z)
+    src_z = src_z[order]
+    src_v = src_v[order]
+
+    interp = np.interp(target_z, src_z, src_v)
+
+    if src_z.size >= 2:
+        left_slope = (src_v[1] - src_v[0]) / (src_z[1] - src_z[0] + 1e-12)
+        right_slope = (src_v[-1] - src_v[-2]) / (src_z[-1] - src_z[-2] + 1e-12)
+
+        left_mask = target_z < src_z[0]
+        right_mask = target_z > src_z[-1]
+
+        interp[left_mask] = src_v[0] + left_slope * (target_z[left_mask] - src_z[0])
+        interp[right_mask] = src_v[-1] + right_slope * (target_z[right_mask] - src_z[-1])
+
+    return interp
+
+
 class WombatColumnModel:
     def __init__(self, cfg: RuntimeConfig):
         self.cfg = cfg
@@ -29,7 +63,7 @@ class WombatColumnModel:
 
         for name, arr in tracers.tracers.items():
             if name in init:
-                source = init[name].interp(depth=z, kwargs={"fill_value": "extrapolate"}).values
+                source = _interp_profile_to_grid(init[name], z)
                 tracers.tracers[name][:] = source
 
         light_name = "sw_down" if "sw_down" in forcing else list(forcing.data_vars)[0]
