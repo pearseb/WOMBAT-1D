@@ -40,6 +40,7 @@ sudo apt-get install -y cmake gfortran build-essential libnetcdf-dev libnetcdff-
    - `model.gotm_output_path`
 
 When `model.use_gotm: true`, WOMBAT-1D runs GOTM and applies vertical mixing using GOTM-reported diffusivity (`nuh/num/Kz/...`).
+If GOTM is requested but unavailable (missing executable or setup dir), the model now falls back to internal diffusion and records the reason in output attribute `gotm_status`.
 
 5. Validate GOTM was built correctly:
 
