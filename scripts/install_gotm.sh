@@ -10,10 +10,13 @@ BUILD_DIR="${GOTM_SRC_DIR}/build"
 mkdir -p "${THIRD_PARTY_DIR}"
 
 if [[ ! -d "${GOTM_SRC_DIR}" ]]; then
-  git clone https://github.com/gotm-model/code.git "${GOTM_SRC_DIR}"
+  git clone --recurse-submodules https://github.com/gotm-model/code.git "${GOTM_SRC_DIR}"
 else
   git -C "${GOTM_SRC_DIR}" pull --ff-only
 fi
+
+# GOTM requires submodules (e.g., extern/gsw). Ensure they are initialized/updated.
+git -C "${GOTM_SRC_DIR}" submodule update --init --recursive
 
 cmake -S "${GOTM_SRC_DIR}" -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Release
 cmake --build "${BUILD_DIR}" -j
