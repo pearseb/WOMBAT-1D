@@ -11,9 +11,10 @@ data:
   init_uri: ./example_data/init_profiles.nc
 model:
   scheme: wombat-lite
-  use_gotm: true
-  gotm_executable: ./third_party/gotm-code/build/gotm
-  gotm_setup_dir: ./gotm_setup
+  # Set false by default: these local GOTM paths are optional and may not exist.
+  use_gotm: false
+  gotm_executable: gotm
+  gotm_setup_dir: null
   gotm_run_dir: ./runs/gotm
   gotm_output_path: output.nc
   parameters:

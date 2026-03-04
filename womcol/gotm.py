@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -18,8 +19,29 @@ class GotmDriver:
     def __init__(self, model_cfg: ModelConfig):
         self.cfg = model_cfg
 
+    def availability_status(self) -> tuple[bool, str]:
+        exe = self.cfg.gotm_executable
+        exe_path = Path(exe)
+
+        if os.sep in exe or (os.altsep and os.altsep in exe):
+            if not exe_path.exists():
+                return False, f"missing executable path: {exe_path}"
+            if not os.access(exe_path, os.X_OK):
+                return False, f"non-executable GOTM binary: {exe_path}"
+            if self.cfg.gotm_setup_dir is not None and not self.cfg.gotm_setup_dir.exists():
+                return False, f"missing setup dir: {self.cfg.gotm_setup_dir}"
+            return True, "ok"
+
+        found = shutil.which(exe)
+        if found is None:
+            return False, f"executable not found on PATH: {exe}"
+        if self.cfg.gotm_setup_dir is not None and not self.cfg.gotm_setup_dir.exists():
+            return False, f"missing setup dir: {self.cfg.gotm_setup_dir}"
+        return True, f"ok ({found})"
+
     def available(self) -> bool:
-        return shutil.which(self.cfg.gotm_executable) is not None
+        ok, _ = self.availability_status()
+        return ok
 
     def _stage_setup(self, run_dir: Path) -> None:
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -60,11 +82,27 @@ def _diffuse_single_step(prev: np.ndarray, kappa: np.ndarray, dz: float, dt: flo
     return nxt
 
 
+def _estimate_dz(ds: xr.Dataset, column: ColumnConfig, nz: int) -> float:
+    """Estimate vertical spacing using dataset depth coordinate when available."""
+
+    if "depth" in ds.coords:
+        depth = np.asarray(ds["depth"].values, dtype=float)
+        if depth.ndim == 1 and depth.size > 1:
+            dz = float(np.mean(np.diff(depth)))
+            if np.isfinite(dz) and dz > 0.0:
+                return dz
+    # Depth grid in this repo is built with linspace(0, depth_m, nz), so spacing
+    # is depth_m / (nz - 1), not depth_m / nz.
+    return column.depth_m / max(nz - 1, 1)
+
+
 def apply_gotm_mixing(ds: xr.Dataset, kappa_2d: np.ndarray, column: ColumnConfig) -> xr.Dataset:
     """Apply vertical diffusion using GOTM-provided diffusivity profile K(z,t)."""
 
     out = ds.copy(deep=True)
-    dz = column.depth_m / column.nz
+    if kappa_2d.ndim != 2:
+        raise ValueError(f"Expected 2D kappa array [time, depth], got shape {kappa_2d.shape}")
+
     dt = column.dt_seconds
 
     for var in out.data_vars:
@@ -73,6 +111,7 @@ def apply_gotm_mixing(ds: xr.Dataset, kappa_2d: np.ndarray, column: ColumnConfig
             continue
         nt = min(arr.shape[0], kappa_2d.shape[0])
         nz = min(arr.shape[1], kappa_2d.shape[1])
+        dz = _estimate_dz(out, column, nz)
         for t in range(1, nt):
             prev = arr[t - 1, :nz]
             kappat = np.maximum(kappa_2d[t - 1, :nz], 0.0)
@@ -86,7 +125,8 @@ def fallback_mix_advect(ds: xr.Dataset, column: ColumnConfig) -> xr.Dataset:
     """Fallback explicit diffusion when GOTM is not available."""
 
     out = ds.copy(deep=True)
-    dz = column.depth_m / column.nz
+    nz = int(ds.sizes.get("depth", column.nz))
+    dz = _estimate_dz(ds, column, nz)
     kappa = 1e-4
     dt = column.dt_seconds
 

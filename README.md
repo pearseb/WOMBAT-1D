@@ -32,6 +32,27 @@ sudo apt-get install -y cmake gfortran build-essential libnetcdf-dev libnetcdff-
 ./scripts/install_gotm.sh
 ```
 
+If CMake errors with `Could NOT find NetCDF (missing: NetCDF_INCLUDE_DIRS)`, your NetCDF
+headers are not visible to CMake in the current shell (common on HPC/module systems).
+Try:
+
+```bash
+# Example (adjust module names for your system)
+module load netcdf
+module load netcdf-fortran   # if your site splits C/Fortran NetCDF modules
+
+# Optional explicit hint used by scripts/install_gotm.sh
+export NetCDF_ROOT=$(nc-config --prefix)
+
+./scripts/install_gotm.sh
+```
+
+If `nc-config` is unavailable, set `NetCDF_ROOT` (or `NETCDF_ROOT`) manually to your
+NetCDF install prefix that contains `include/netcdf.h` and `lib/libnetcdf*`.
+
+On older CMake stacks (e.g., policy CMP0074 warnings), the installer now also passes
+explicit include/lib hints from `nc-config` to improve compatibility.
+
 3. Prepare a GOTM setup directory (e.g., `./gotm_setup`) containing your GOTM namelists/YAML and forcing files.
 4. Point model config keys to GOTM paths:
    - `model.gotm_executable`
@@ -40,6 +61,7 @@ sudo apt-get install -y cmake gfortran build-essential libnetcdf-dev libnetcdff-
    - `model.gotm_output_path`
 
 When `model.use_gotm: true`, WOMBAT-1D runs GOTM and applies vertical mixing using GOTM-reported diffusivity (`nuh/num/Kz/...`).
+If GOTM is requested but unavailable (missing executable or setup dir), the model now falls back to internal diffusion and records the reason in output attribute `gotm_status`.
 
 5. Validate GOTM was built correctly:
 
