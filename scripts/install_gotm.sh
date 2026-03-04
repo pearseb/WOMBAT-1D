@@ -35,6 +35,8 @@ fi
 NETCDFF_HINT="${NetCDF_Fortran_ROOT:-${NETCDF_FORTRAN_ROOT:-}}"
 NETCDFF_INCLUDE_DIR=""
 NETCDFF_LIB_DIR=""
+NETCDFF_MOD_DIR="${NETCDF_FORTRAN_MOD_DIR:-}"
+NF_FFLAGS=""
 
 if command -v nf-config >/dev/null 2>&1; then
   if [[ -z "${NETCDFF_HINT}" ]]; then
@@ -42,6 +44,22 @@ if command -v nf-config >/dev/null 2>&1; then
   fi
   NETCDFF_INCLUDE_DIR="$(nf-config --includedir || true)"
   NETCDFF_LIB_DIR="$(nf-config --flibs 2>/dev/null | tr ' ' '\n' | sed -n 's/^-L//p' | head -n1)"
+  NF_FFLAGS="$(nf-config --fflags 2>/dev/null || true)"
+fi
+
+# Prefer explicit module-dir override if provided.
+if [[ -n "${NETCDFF_MOD_DIR}" && -f "${NETCDFF_MOD_DIR}/netcdf.mod" ]]; then
+  NETCDFF_INCLUDE_DIR="${NETCDFF_MOD_DIR}"
+fi
+
+# If nf-config --includedir does not contain netcdf.mod, parse nf-config --fflags for -I dirs.
+if [[ -n "${NF_FFLAGS}" && ( -z "${NETCDFF_INCLUDE_DIR}" || ! -f "${NETCDFF_INCLUDE_DIR}/netcdf.mod" ) ]]; then
+  while IFS= read -r idir; do
+    if [[ -n "${idir}" && -f "${idir}/netcdf.mod" ]]; then
+      NETCDFF_INCLUDE_DIR="${idir}"
+      break
+    fi
+  done < <(printf "%s\n" "${NF_FFLAGS}" | tr " " "\n" | sed -n "s/^-I//p")
 fi
 
 # Fallback: netcdf.mod may be colocated with NetCDF C headers on some installs.
@@ -60,11 +78,13 @@ Detected:
   nf-config: $(command -v nf-config || echo 'not found')
   NetCDF include dir: ${NETCDF_INCLUDE_DIR:-<unset>}
   NetCDF Fortran include dir: ${NETCDFF_INCLUDE_DIR:-<unset>}
+  nf-config --fflags: ${NF_FFLAGS:-<unset>}
 
 GOTM/FABM needs NetCDF Fortran headers/modules. Please load/install NetCDF Fortran
 (e.g. module load netcdf-fortran) or set one of:
   NetCDF_Fortran_ROOT / NETCDF_FORTRAN_ROOT
-so that <prefix>/include/netcdf.mod exists.
+  NETCDF_FORTRAN_MOD_DIR
+so that <prefix>/include/netcdf.mod exists (or set NETCDF_FORTRAN_MOD_DIR directly).
 EOF
   exit 2
 fi

@@ -53,8 +53,23 @@ NetCDF install prefix that contains `include/netcdf.h` and `lib/libnetcdf*`.
 On older CMake stacks (e.g., policy CMP0074 warnings), the installer now also passes
 explicit include/lib hints from `nc-config` to improve compatibility.
 
-If build later fails with `Fatal Error: Can't open module file ‘netcdf.mod’`, you have NetCDF-C but not NetCDF-Fortran in your environment.
-Load/install NetCDF-Fortran (`nf-config` must be available) or point the installer at a prefix containing `include/netcdf.mod` via `NetCDF_Fortran_ROOT` (or `NETCDF_FORTRAN_ROOT`).
+If build later fails with `Fatal Error: Can't open module file ‘netcdf.mod’`, you have NetCDF-C but not a usable NetCDF-Fortran module path in your environment.
+Check:
+
+```bash
+which nf-config
+nf-config --includedir
+nf-config --fflags
+```
+
+If `nf-config --includedir` does not contain `netcdf.mod`, the installer now also parses `nf-config --fflags` for `-I...` include paths.
+You can also override explicitly with:
+
+```bash
+export NETCDF_FORTRAN_MOD_DIR=/path/to/dir/with/netcdf.mod
+# or
+export NetCDF_Fortran_ROOT=/prefix/with/include/netcdf.mod
+```
 
 3. Prepare a GOTM setup directory (e.g., `./gotm_setup`) containing your GOTM namelists/YAML and forcing files.
 4. Point model config keys to GOTM paths:
