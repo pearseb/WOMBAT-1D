@@ -53,6 +53,23 @@ def _interp_profile_to_grid(var: xr.DataArray, target_z: np.ndarray) -> np.ndarr
     return interp
 
 
+def _limit_forcing_to_runtime_window(forcing: xr.Dataset, *, days: int) -> xr.Dataset:
+    """Limit forcing to the configured runtime window if time is datetime-like."""
+
+    if "time" not in forcing.coords:
+        return forcing
+    if forcing.sizes.get("time", 0) == 0:
+        return forcing
+
+    time_vals = np.asarray(forcing["time"].values)
+    if np.issubdtype(time_vals.dtype, np.datetime64):
+        start = np.datetime64(time_vals[0])
+        stop = start + np.timedelta64(days, "D") - np.timedelta64(1, "ns")
+        return forcing.sel(time=slice(start, stop))
+
+    return forcing
+
+
 class WombatColumnModel:
     def __init__(self, cfg: RuntimeConfig):
         self.cfg = cfg
@@ -120,9 +137,16 @@ class WombatColumnModel:
             latitude=self.cfg.latitude,
             longitude=self.cfg.longitude,
         )
+        forcing = _limit_forcing_to_runtime_window(forcing, days=self.cfg.days)
         init = self.init_provider.load_profile(latitude=self.cfg.latitude, longitude=self.cfg.longitude)
         bio_ds = self._run_biogeochemistry(forcing, init)
-        return self._mix_and_advect(bio_ds)
+        mixed = self._mix_and_advect(bio_ds)
+        mixed.attrs["n_timesteps"] = int(mixed.sizes.get("time", 0))
+        mixed.attrs["configured_days"] = int(self.cfg.days)
+        if mixed.sizes.get("time", 0) > 0:
+            mixed.attrs["time_start"] = str(np.asarray(mixed["time"].values[0]))
+            mixed.attrs["time_end"] = str(np.asarray(mixed["time"].values[-1]))
+        return mixed
 
     def run_to_file(self, out_path: Path) -> xr.Dataset:
         ds = self.run()
