@@ -34,8 +34,9 @@ fi
 # NetCDF Fortran discovery (needed for netcdf.mod).
 NETCDFF_HINT="${NetCDF_Fortran_ROOT:-${NETCDF_FORTRAN_ROOT:-}}"
 NETCDFF_INCLUDE_DIR=""
-NETCDFF_LIB_DIR=""
+NETCDFF_LIB_DIR="${NETCDF_FORTRAN_LIB_DIR:-}"
 NETCDFF_MOD_DIR="${NETCDF_FORTRAN_MOD_DIR:-}"
+NETCDFF_LIBRARY=""
 NF_FFLAGS=""
 
 if command -v nf-config >/dev/null 2>&1; then
@@ -45,6 +46,22 @@ if command -v nf-config >/dev/null 2>&1; then
   NETCDFF_INCLUDE_DIR="$(nf-config --includedir || true)"
   NETCDFF_LIB_DIR="$(nf-config --flibs 2>/dev/null | tr ' ' '\n' | sed -n 's/^-L//p' | head -n1)"
   NF_FFLAGS="$(nf-config --fflags 2>/dev/null || true)"
+fi
+
+
+# Try to locate actual netcdff library file for explicit linking hints.
+if command -v nf-config >/dev/null 2>&1; then
+  while IFS= read -r ldir; do
+    if [[ -z "${NETCDFF_LIB_DIR}" ]]; then
+      NETCDFF_LIB_DIR="${ldir}"
+    fi
+    for cand in "${ldir}/libnetcdff.so" "${ldir}/libnetcdff.a" "${ldir}/libnetcdff.dylib"; do
+      if [[ -f "${cand}" ]]; then
+        NETCDFF_LIBRARY="${cand}"
+        break 2
+      fi
+    done
+  done < <(nf-config --flibs 2>/dev/null | tr ' ' '\n' | sed -n 's/^-L//p')
 fi
 
 # Prefer explicit module-dir override if provided.
@@ -79,12 +96,15 @@ Detected:
   NetCDF include dir: ${NETCDF_INCLUDE_DIR:-<unset>}
   NetCDF Fortran include dir: ${NETCDFF_INCLUDE_DIR:-<unset>}
   nf-config --fflags: ${NF_FFLAGS:-<unset>}
+  NetCDF Fortran lib dir: ${NETCDFF_LIB_DIR:-<unset>}
+  NetCDF Fortran library: ${NETCDFF_LIBRARY:-<unset>}
 
 GOTM/FABM needs NetCDF Fortran headers/modules. Please load/install NetCDF Fortran
 (e.g. module load netcdf-fortran) or set one of:
   NetCDF_Fortran_ROOT / NETCDF_FORTRAN_ROOT
   NETCDF_FORTRAN_MOD_DIR
-so that <prefix>/include/netcdf.mod exists (or set NETCDF_FORTRAN_MOD_DIR directly).
+  NETCDF_FORTRAN_LIB_DIR
+so that <prefix>/include/netcdf.mod exists (and optionally set NETCDF_FORTRAN_LIB_DIR).
 EOF
   exit 2
 fi
@@ -131,6 +151,21 @@ fi
 if [[ -n "${NETCDFF_LIB_DIR}" ]]; then
   CMAKE_ARGS+=("-DNetCDF_Fortran_LIBRARY_DIR=${NETCDFF_LIB_DIR}")
   echo "Using NetCDF Fortran lib dir: ${NETCDFF_LIB_DIR}"
+fi
+if [[ -n "${NETCDFF_LIBRARY}" ]]; then
+  CMAKE_ARGS+=(
+    "-DNetCDF_Fortran_LIBRARY=${NETCDFF_LIBRARY}"
+    "-DNETCDF_FORTRAN_LIBRARY=${NETCDFF_LIBRARY}"
+  )
+  echo "Using NetCDF Fortran library: ${NETCDFF_LIBRARY}"
+fi
+
+# Help final link step find -lnetcdff on HPC stacks where transitive -L is dropped.
+if [[ -n "${NETCDFF_LIB_DIR}" ]]; then
+  CMAKE_ARGS+=(
+    "-DCMAKE_EXE_LINKER_FLAGS=-L${NETCDFF_LIB_DIR} ${CMAKE_EXE_LINKER_FLAGS:-}"
+    "-DCMAKE_SHARED_LINKER_FLAGS=-L${NETCDFF_LIB_DIR} ${CMAKE_SHARED_LINKER_FLAGS:-}"
+  )
 fi
 
 if [[ -z "${NETCDF_HINT}" && -z "${NETCDF_INCLUDE_DIR}" ]]; then

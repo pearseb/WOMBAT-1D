@@ -71,6 +71,20 @@ export NETCDF_FORTRAN_MOD_DIR=/path/to/dir/with/netcdf.mod
 export NetCDF_Fortran_ROOT=/prefix/with/include/netcdf.mod
 ```
 
+
+If linking fails with `/bin/ld: cannot find -lnetcdff`, your NetCDF-Fortran library path is missing at link time.
+Check:
+
+```bash
+nf-config --flibs
+```
+
+Then either load the correct module stack or export:
+
+```bash
+export NETCDF_FORTRAN_LIB_DIR=/path/to/lib/with/libnetcdff.so
+```
+
 3. Prepare a GOTM setup directory (e.g., `./gotm_setup`) containing your GOTM namelists/YAML and forcing files.
 4. Point model config keys to GOTM paths:
    - `model.gotm_executable`
