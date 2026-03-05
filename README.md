@@ -32,6 +32,59 @@ sudo apt-get install -y cmake gfortran build-essential libnetcdf-dev libnetcdff-
 ./scripts/install_gotm.sh
 ```
 
+If CMake errors with `Could NOT find NetCDF (missing: NetCDF_INCLUDE_DIRS)`, your NetCDF
+headers are not visible to CMake in the current shell (common on HPC/module systems).
+Try:
+
+```bash
+# Example (adjust module names for your system)
+module load netcdf
+module load netcdf-fortran   # if your site splits C/Fortran NetCDF modules
+
+# Optional explicit hint used by scripts/install_gotm.sh
+export NetCDF_ROOT=$(nc-config --prefix)
+
+./scripts/install_gotm.sh
+```
+
+If `nc-config` is unavailable, set `NetCDF_ROOT` (or `NETCDF_ROOT`) manually to your
+NetCDF install prefix that contains `include/netcdf.h` and `lib/libnetcdf*`.
+
+On older CMake stacks (e.g., policy CMP0074 warnings), the installer now also passes
+explicit include/lib hints from `nc-config` to improve compatibility.
+
+If build later fails with `Fatal Error: Can't open module file ‘netcdf.mod’`, you have NetCDF-C but not a usable NetCDF-Fortran module path in your environment.
+Check:
+
+```bash
+which nf-config
+nf-config --includedir
+nf-config --fflags
+```
+
+If `nf-config --includedir` does not contain `netcdf.mod`, the installer now also parses `nf-config --fflags` for `-I...` include paths.
+You can also override explicitly with:
+
+```bash
+export NETCDF_FORTRAN_MOD_DIR=/path/to/dir/with/netcdf.mod
+# or
+export NetCDF_Fortran_ROOT=/prefix/with/include/netcdf.mod
+```
+
+
+If linking fails with `/bin/ld: cannot find -lnetcdff`, your NetCDF-Fortran library path is missing at link time.
+Check:
+
+```bash
+nf-config --flibs
+```
+
+Then either load the correct module stack or export:
+
+```bash
+export NETCDF_FORTRAN_LIB_DIR=/path/to/lib/with/libnetcdff.so
+```
+
 3. Prepare a GOTM setup directory (e.g., `./gotm_setup`) containing your GOTM namelists/YAML and forcing files.
 4. Point model config keys to GOTM paths:
    - `model.gotm_executable`
@@ -40,6 +93,7 @@ sudo apt-get install -y cmake gfortran build-essential libnetcdf-dev libnetcdff-
    - `model.gotm_output_path`
 
 When `model.use_gotm: true`, WOMBAT-1D runs GOTM and applies vertical mixing using GOTM-reported diffusivity (`nuh/num/Kz/...`).
+If GOTM is requested but unavailable (missing executable or setup dir), the model now falls back to internal diffusion and records the reason in output attribute `gotm_status`.
 
 5. Validate GOTM was built correctly:
 
